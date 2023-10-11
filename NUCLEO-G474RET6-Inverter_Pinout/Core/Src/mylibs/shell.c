@@ -7,7 +7,12 @@
 #include "usart.h"
 #include "mylibs/shell.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include "tim.h"
+
+#define MAX_DUTY_CYCLE 4249
+#define MIN_DUTY_CYCLE 0
 
 uint8_t prompt[]="user@Nucleo-STM32G474RET6>>";
 uint8_t started[]=
@@ -75,6 +80,19 @@ void Shell_Loop(void){
 		else if(strcmp(argv[0],"help")==0){
 			int uartTxStringLength = snprintf((char *)uartTxBuffer, UART_TX_BUFFER_SIZE, "Print all available functions here\r\n");
 			HAL_UART_Transmit(&huart2, uartTxBuffer, uartTxStringLength, HAL_MAX_DELAY);
+		}
+		else if(strcmp(argv[0], "speed") == 0)
+		{
+			uint16_t speedValue = atoi(argv[1]);
+			if(speedValue > MAX_DUTY_CYCLE)
+			{
+				speedValue = MAX_DUTY_CYCLE;
+			}
+			else if(speedValue < MIN_DUTY_CYCLE)
+			{
+				speedValue = MIN_DUTY_CYCLE;
+			}
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speedValue);
 		}
 		else{
 			HAL_UART_Transmit(&huart2, cmdNotFound, sizeof(cmdNotFound), HAL_MAX_DELAY);
