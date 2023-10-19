@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "dma.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -27,6 +28,8 @@
 /* USER CODE BEGIN Includes */
 #include "mylibs/shell.h"
 #include <stdio.h>
+#include "current.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,7 +50,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+uint32_t dmaADC[2];
+float adcValue[2];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -59,6 +63,23 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+	if(hadc->Instance == ADC1)
+	{
+		adcValue[0] = (float)dmaADC[0];
+		adcValue[0] = adcValue[0] * 3300 / 4096;
+		adcValue[0] -= OFFSET_SME;
+		adcValue[0] = adcValue[0] / SENSITIVITY_SME;
+	}
+	if(hadc->Instance == ADC2)
+	{
+		adcValue[1] = (float)dmaADC[1];
+		adcValue[1] = adcValue[1] * 3300 / 4096;
+		adcValue[1] -= OFFSET_SME;
+		adcValue[1] = adcValue[1] / SENSITIVITY_SME;
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -89,6 +110,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_ADC2_Init();
   MX_ADC1_Init();
   MX_TIM1_Init();
@@ -98,29 +120,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
 	Shell_Init();
 
-	uint8_t errorMsg[] = "Error";
+	HAL_ADC_Start_DMA(&hadc1, dmaADC, 1);
+	HAL_ADC_Start_DMA(&hadc2, dmaADC + 1, 1);
 
-
-	if(HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1) != HAL_OK)
-	{
-		HAL_UART_Transmit(&huart2, errorMsg, sizeof(errorMsg), HAL_MAX_DELAY);
-	}
-	if(HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1) != HAL_OK)
-	{
-		HAL_UART_Transmit(&huart2, errorMsg, sizeof(errorMsg), HAL_MAX_DELAY);
-	}
-	if(HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2) != HAL_OK)
-	{
-		HAL_UART_Transmit(&huart2, errorMsg, sizeof(errorMsg), HAL_MAX_DELAY);
-	}
-	if(HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2) != HAL_OK)
-	{
-		HAL_UART_Transmit(&huart2, errorMsg, sizeof(errorMsg), HAL_MAX_DELAY);
-	}
-
-	//int dutyCycle = 0.6 * MAX_DUTY_CYCLE;
-//	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 4915);
-//	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 4915);
   /* USER CODE END 2 */
 
   /* Infinite loop */

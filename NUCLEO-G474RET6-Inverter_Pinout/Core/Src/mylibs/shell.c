@@ -10,9 +10,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "tim.h"
+#include "adc.h"
+#include "../current.h"
 
 #define MAX_DUTY_CYCLE 4249
-#define MIN_DUTY_CYCLE 0
+#define MAX_SPEED 100
+#define MIN_SPEED 0
 
 uint8_t prompt[]="user@Nucleo-STM32G474RET6>>";
 uint8_t started[]=
@@ -24,9 +27,11 @@ uint8_t newline[]="\r\n";
 uint8_t backspace[]="\b \b";
 uint8_t cmdNotFound[]="Command not found\r\n";
 uint8_t brian[]="Brian is in the kitchen\r\n";
+uint8_t errorMsg[] = "Error";
 uint8_t uartRxReceived;
 uint8_t uartRxBuffer[UART_RX_BUFFER_SIZE];
 uint8_t uartTxBuffer[UART_TX_BUFFER_SIZE];
+uint16_t currentSpeed = 50;
 
 char	 	cmdBuffer[CMD_BUFFER_SIZE];
 int 		idx_cmd;
@@ -84,15 +89,76 @@ void Shell_Loop(void){
 		else if(strcmp(argv[0], "speed") == 0)
 		{
 			uint16_t speedValue = atoi(argv[1]);
-			if(speedValue > MAX_DUTY_CYCLE)
+
+			if(speedValue > MAX_SPEED)
 			{
-				speedValue = MAX_DUTY_CYCLE;
+				speedValue = MAX_SPEED;
 			}
-			else if(speedValue < MIN_DUTY_CYCLE)
+			else if(speedValue < MIN_SPEED)
 			{
-				speedValue = MIN_DUTY_CYCLE;
+				speedValue = MIN_SPEED;
 			}
-			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speedValue);
+
+			int uartTxStringLength = snprintf((char *)uartTxBuffer, UART_TX_BUFFER_SIZE, "Wait\r\n");
+			HAL_UART_Transmit(&huart2, uartTxBuffer, uartTxStringLength, HAL_MAX_DELAY);
+
+			while(currentSpeed != speedValue)
+			{
+				if(currentSpeed > speedValue)
+				{
+					currentSpeed--;
+				}
+				else if(currentSpeed < speedValue)
+				{
+					currentSpeed++;
+				}
+
+				__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, (MAX_DUTY_CYCLE * currentSpeed)/100);
+				__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, MAX_DUTY_CYCLE - (MAX_DUTY_CYCLE * currentSpeed)/100);
+
+				HAL_Delay(100);
+			}
+		}
+		else if(strcmp(argv[0], "start") == 0)
+		{
+			if(HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1) != HAL_OK)
+			{
+				HAL_UART_Transmit(&huart2, errorMsg, sizeof(errorMsg), HAL_MAX_DELAY);
+			}
+			if(HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1) != HAL_OK)
+			{
+				HAL_UART_Transmit(&huart2, errorMsg, sizeof(errorMsg), HAL_MAX_DELAY);
+			}
+			if(HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2) != HAL_OK)
+			{
+				HAL_UART_Transmit(&huart2, errorMsg, sizeof(errorMsg), HAL_MAX_DELAY);
+			}
+			if(HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2) != HAL_OK)
+			{
+				HAL_UART_Transmit(&huart2, errorMsg, sizeof(errorMsg), HAL_MAX_DELAY);
+			}
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, MAX_DUTY_CYCLE / 2);
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, MAX_DUTY_CYCLE / 2);
+		}
+		else if(strcmp(argv[0], "stop") == 0)
+		{
+			HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
+			HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_1);
+			HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
+			HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_2);
+		}
+		else if(strcmp(argv[0], "readADC") == 0)
+		{
+			if(strcmp(argv[1], "U") == 0)
+			{
+				int uartTxStringLength = snprintf((char *)uartTxBuffer, UART_TX_BUFFER_SIZE, "%f\r\n", adcValue[0]);
+				HAL_UART_Transmit(&huart2, uartTxBuffer, uartTxStringLength, HAL_MAX_DELAY);
+			}
+			if(strcmp(argv[1], "V") == 0)
+			{
+				int uartTxStringLength = snprintf((char *)uartTxBuffer, UART_TX_BUFFER_SIZE, "%f\r\n", adcValue[1]);
+				HAL_UART_Transmit(&huart2, uartTxBuffer, uartTxStringLength, HAL_MAX_DELAY);
+			}
 		}
 		else{
 			HAL_UART_Transmit(&huart2, cmdNotFound, sizeof(cmdNotFound), HAL_MAX_DELAY);
