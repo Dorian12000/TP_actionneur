@@ -44,14 +44,16 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define RES_ENCODER 4096
+#define TE 0.00002
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint32_t dmaADC_encodeur[2];
-float adcEncoder[2];
+uint32_t encoder_value = 0;
+uint32_t prev_encoder_value = 0;
+float rpm;
 uint32_t dmaADCU;
 float adcValue[2];
 /* USER CODE END PV */
@@ -74,12 +76,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 		adcValue[0] -= OFFSET_SME;
 		adcValue[0] = adcValue[0] / SENSITIVITY_SME;
 	}
-	if(hadc->Instance == ADC2)
-	{
-		adcEncoder[0] = (float)dmaADC_encodeur[0] / 4096.0;
-		adcEncoder[1] = (float)dmaADC_encodeur[1] / 4096.0;
-	}
 }
+
 /* USER CODE END 0 */
 
 /**
@@ -117,9 +115,14 @@ int main(void)
   MX_TIM3_Init();
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 	Shell_Init();
 
+	  if(HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL) != HAL_OK) // Encodeur
+	  {
+		  Error_Handler();
+	  }
 
 	if(HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED) != HAL_OK)
 	{
@@ -127,11 +130,6 @@ int main(void)
 	}
 
 	if(HAL_ADC_Start_DMA(&hadc1, &dmaADCU, 1) != HAL_OK)
-	{
-		Error_Handler();
-	}
-
-	if(HAL_ADC_Start_DMA(&hadc2, dmaADC_encodeur, 2) != HAL_OK)
 	{
 		Error_Handler();
 	}
@@ -217,7 +215,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
+	if(htim->Instance == TIM4)
+	{
+		uint32_t encoder_value = htim->Instance->CNT;
 
+		float distance = (encoder_value - prev_encoder_value) / (float)RES_ENCODER;
+
+		rpm = 60.0 * distance / TE;
+
+		prev_encoder_value = encoder_value;
+
+	}
   /* USER CODE END Callback 1 */
 }
 

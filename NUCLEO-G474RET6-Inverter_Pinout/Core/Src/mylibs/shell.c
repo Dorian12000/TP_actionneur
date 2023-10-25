@@ -154,7 +154,7 @@ void Shell_Loop(void){
 		}
 		else if(strcmp(argv[0], "readSpeed") == 0)
 		{
-			int uartTxStringLength = snprintf((char *)uartTxBuffer, UART_TX_BUFFER_SIZE, "%f, %f\r\n", adcEncoder[0], adcEncoder[1]);
+			int uartTxStringLength = snprintf((char *)uartTxBuffer, UART_TX_BUFFER_SIZE, "%f\r\n", rpm);
 			HAL_UART_Transmit(&huart2, uartTxBuffer, uartTxStringLength, HAL_MAX_DELAY);
 		}
 		else{
