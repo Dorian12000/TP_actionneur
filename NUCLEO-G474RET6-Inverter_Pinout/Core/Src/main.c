@@ -50,7 +50,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint32_t dmaADCV;
+uint32_t dmaADC_encodeur[2];
+float adcEncoder[2];
 uint32_t dmaADCU;
 float adcValue[2];
 /* USER CODE END PV */
@@ -75,11 +76,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 	}
 	if(hadc->Instance == ADC2)
 	{
-		adcValue[1] = (float)dmaADCV;
-		adcValue[1] = adcValue[1] * 3300 / 4096;
-		adcValue[1] -= OFFSET_SME;
-		adcValue[1] = adcValue[1] / SENSITIVITY_SME;
-		//adcValue[1] = dmaADCV;
+		adcEncoder[0] = (float)dmaADC_encodeur[0] / 4096.0;
+		adcEncoder[1] = (float)dmaADC_encodeur[1] / 4096.0;
 	}
 }
 /* USER CODE END 0 */
@@ -123,10 +121,21 @@ int main(void)
 	Shell_Init();
 
 
-	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-	HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED);
-	HAL_ADC_Start_DMA(&hadc1, &dmaADCU, 1);
-	HAL_ADC_Start_DMA(&hadc2, &dmaADCV, 1);
+	if(HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+	if(HAL_ADC_Start_DMA(&hadc1, &dmaADCU, 1) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+	if(HAL_ADC_Start_DMA(&hadc2, dmaADC_encodeur, 2) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
 
   /* USER CODE END 2 */
 

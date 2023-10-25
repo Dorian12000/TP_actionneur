@@ -147,18 +147,15 @@ void Shell_Loop(void){
 			HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
 			HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_2);
 		}
-		else if(strcmp(argv[0], "readADC") == 0)
+		else if(strcmp(argv[0], "readCurrent") == 0)
 		{
-			if(strcmp(argv[1], "U") == 0)
-			{
-				int uartTxStringLength = snprintf((char *)uartTxBuffer, UART_TX_BUFFER_SIZE, "%f\r\n", adcValue[0]);
-				HAL_UART_Transmit(&huart2, uartTxBuffer, uartTxStringLength, HAL_MAX_DELAY);
-			}
-			if(strcmp(argv[1], "V") == 0)
-			{
-				int uartTxStringLength = snprintf((char *)uartTxBuffer, UART_TX_BUFFER_SIZE, "%f\r\n", adcValue[1]);
-				HAL_UART_Transmit(&huart2, uartTxBuffer, uartTxStringLength, HAL_MAX_DELAY);
-			}
+			int uartTxStringLength = snprintf((char *)uartTxBuffer, UART_TX_BUFFER_SIZE, "%f\r\n", adcValue[0]);
+			HAL_UART_Transmit(&huart2, uartTxBuffer, uartTxStringLength, HAL_MAX_DELAY);
+		}
+		else if(strcmp(argv[0], "readSpeed") == 0)
+		{
+			int uartTxStringLength = snprintf((char *)uartTxBuffer, UART_TX_BUFFER_SIZE, "%f, %f\r\n", adcEncoder[0], adcEncoder[1]);
+			HAL_UART_Transmit(&huart2, uartTxBuffer, uartTxStringLength, HAL_MAX_DELAY);
 		}
 		else{
 			HAL_UART_Transmit(&huart2, cmdNotFound, sizeof(cmdNotFound), HAL_MAX_DELAY);

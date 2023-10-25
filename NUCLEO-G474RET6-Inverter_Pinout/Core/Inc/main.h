@@ -54,6 +54,7 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 extern float adcValue[2];
+extern float adcEncoder[2];
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
